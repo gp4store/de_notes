@@ -64,14 +64,21 @@ docker run -it \
 # if the conflict about the name shows, you can skip a headache just changing the name of
 # the pgAdmin container
 
+# After a container has stop you can start it again with the next command
+
+docker start my_container
+
+# Running docker ps -a will list all containers in your system containers names and id will show
+
 # Run your data ingestion script, 
 # run postgresql docker image,
 # run pgadmin docker image, watchout for label --name
 # access pgAdmin web interface through a web browser.
 
+# Before you run the scrip below both postgresql and pgAdmin need to be running.
 
 URL="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
-python ingest_data.py
+python ingest_data.py \
     --user=root \
     --password=root \
     --host=localhost \
@@ -79,4 +86,22 @@ python ingest_data.py
     --db=ny_taxi \
     --table_name=yellow_taxi_data \
     --url=${URL}
+
+# Dockerizing the data ingestion script using 
+docker build -t data_ingest:v1.0 .
+
+# Using docker run to use it all together
+
+docker run -it \
+  --network=pg-network \
+  data_ingest:v1.0 \
+    --user=root \
+    --password=root \
+    --host=pg-database \
+    --port=5432 \
+    --db=ny_taxi \
+    --table_name=yellow_taxi_trips \
+    --url=${URL}
+
+
 
