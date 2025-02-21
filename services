@@ -1,0 +1,82 @@
+# These commands will allow you to create a container that will set up postgres with
+# a database named ny_taxi which later using jupyter notebooks we can populate db schema
+# headers and data.
+
+# Meaning if I have another .csv file I can create another set of docker commands with 
+# different user, password and I could be able to recycle step process for another database
+
+#Docker container for database
+
+docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi" \
+    -v $(pwd)/ny_taxi_postgres_data:/var/lib/postgresql/data \
+    -p 5432:5432 \
+postgres:13
+
+
+# To start "pgcli" in the terminal you have to use this command which specifies user, pass-
+# word, port and database name, basically the items you enumerated in the dockerfile
+
+# pgcli -h localhost -p {port} -u {user} -d {database name}
+pgcli -h localhost -p 5432 -u root -d ny_taxi
+
+# These commands will allow you to create another container but for room pgAdmin, be mind-
+# ful of the enviroment variables used bc those are going to be the ones used on the actual
+# pgAdmin GUI.
+
+docker run -it \
+    -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+    -e PGADMIN_DEFAULT_PASSWORD="root" \
+    -p 8080:80 \
+    dpage/pgadmin4
+
+# Creating a network for your containers to run in the same network, the docker instructions
+# for postgres container need to add the network name you used when you were creating the net-
+# work.
+
+# docker network create pg-network <--- thats the name you need to use
+# # This container already has the dataset allocated and ready to use
+# the label --name pg-database3 is important bc when you register the server in pgAdmin, thats
+# the name we gonna be registering our service.
+
+docker run -it \
+    -e POSTGRES_USER="root" \
+    -e POSTGRES_PASSWORD="root" \
+    -e POSTGRES_DB="ny_taxi" \
+    -v $(pwd)/ny_taxi_postgres_data:/var/lib/postgresql/data \
+    -p 5432:5432 \
+    --network=pg-network \
+    --name pg-database45 \
+postgres:13
+
+# Running pgAdmin container in the same network
+
+docker run -it \
+    -e PGADMIN_DEFAULT_EMAIL="admin@admin.com" \
+    -e PGADMIN_DEFAULT_PASSWORD="root" \
+    -p 8080:80 \
+    --network=pg-network \
+    --name pg-admin45 \
+    dpage/pgadmin4
+
+# if the conflict about the name shows, you can skip a headache just changing the name of
+# the pgAdmin container
+
+# Run your data ingestion script, 
+# run postgresql docker image,
+# run pgadmin docker image, watchout for label --name
+# access pgAdmin web interface through a web browser.
+
+
+URL="https://github.com/DataTalksClub/nyc-tlc-data/releases/download/yellow/yellow_tripdata_2021-01.csv.gz"
+python ingest_data.py
+    --user=root \
+    --password=root \
+    --host=localhost \
+    --port=5432 \
+    --db=ny_taxi \
+    --table_name=yellow_taxi_data \
+    --url=${URL}
+
